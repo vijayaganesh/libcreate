@@ -80,6 +80,8 @@ namespace create {
 
       Matrix poseCovar;
 
+      bool isModeOff;
+
       void init();
       // Add two matrices and handle overflow case
       Matrix addMatrices(const Matrix &A, const Matrix &B) const;

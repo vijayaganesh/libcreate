@@ -40,6 +40,7 @@ namespace create {
     vel.yaw = 0;
     vel.covariance = std::vector<float>(9, 0.0);
     poseCovar = Matrix(3, 3, 0.0);
+    isModeOff = true;
     data = boost::shared_ptr<Data>(new Data(model));
     serial = boost::make_shared<Serial>(data);
   }
@@ -50,7 +51,7 @@ namespace create {
 
   Create::Create(const std::string& dev, const int& baud, RobotModel m) : model(m) {
     init();
-    serial->connect(dev, baud);
+    connect(dev, baud);
   }
 
   Create::~Create() {
@@ -256,6 +257,7 @@ namespace create {
       }
     }
 
+    isModeOff = timeout;
     return !timeout;
   }
 
@@ -271,24 +273,29 @@ namespace create {
   //}
 
   bool Create::setMode(const CreateMode& mode) {
+    bool result = false;
     switch (mode) {
       case MODE_OFF:
-        return serial->sendOpcode(OC_POWER);
+        result = serial->sendOpcode(OC_STOP);
+        isModeOff = result;
         break;
       case MODE_PASSIVE:
-        return serial->sendOpcode(OC_START);
+        result = serial->sendOpcode(OC_START);
         break;
       case MODE_SAFE:
-        return serial->sendOpcode(OC_SAFE);
+        result = serial->sendOpcode(OC_SAFE);
         break;
       case MODE_FULL:
-        return serial->sendOpcode(OC_FULL);
+        result = serial->sendOpcode(OC_FULL);
         break;
       default:
         CERR("[create::Create] ", "cannot set robot to mode '" << mode << "'");
         break;
     }
-    return false;
+    if (mode != MODE_OFF && isModeOff && result) {
+      isModeOff = false;
+    }
+    return result;
   }
 
   bool Create::clean(const CleanMode& mode) {
@@ -903,7 +910,10 @@ namespace create {
   }
 
   create::CreateMode Create::getMode() const {
-    if (data->isValidPacketID(ID_OI_MODE)) {
+    if (isModeOff) {
+      return create::MODE_OFF;
+    }
+    else if (data->isValidPacketID(ID_OI_MODE)) {
       return (create::CreateMode) GET_DATA(ID_OI_MODE);
     }
     else {
