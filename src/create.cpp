@@ -44,6 +44,7 @@ namespace create {
     poseCovar = Matrix(3, 3, 0.0);
     requestedLeftVel = 0;
     requestedRightVel = 0;
+    estimateOdomWithCommandVelocity = false;
     data = boost::shared_ptr<Data>(new Data(model.getVersion()));
     if (model.getVersion() == V_1) {
       serial = boost::make_shared<SerialQuery>(data);
@@ -119,7 +120,15 @@ namespace create {
       std::memcpy(&angleField, &angleRaw, sizeof(angleField));
     }
 
-    if (model.getVersion() == V_1) {
+    // Option to use commanded velocities to estimated odometry
+    if (estimateOdomWithCommandVelocity)
+    {
+      leftWheelDist = requestedLeftVel * dt;
+      rightWheelDist = requestedRightVel * dt;
+      deltaDist = (rightWheelDist + leftWheelDist) / 2.0;
+      wheelDistDiff = rightWheelDist - leftWheelDist;
+      deltaYaw = wheelDistDiff / model.getAxleLength();
+    } else if (model.getVersion() == V_1) {
       wheelDistDiff = 2.0 * angleField / 1000.0;
       leftWheelDist = deltaDist - (wheelDistDiff / 2.0);
       rightWheelDist = deltaDist + (wheelDistDiff / 2.0);
@@ -134,8 +143,8 @@ namespace create {
        * http://wiki.tekkotsu.org/index.php/Create_Odometry_Bug                    *
        * https://github.com/AutonomyLab/create_autonomy/issues/28                  *
        *                                                                           *
-       * TODO: Consider using velocity command as substitute for pose estimation   *
-       * to mitigate both of these problems.                                       *
+       * Consider using commanded velocities as a substitute for pose estimation   *
+       * by calling 'enableOdomEstimateWithCommandVelocity(true)'                  *
        * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * */
       deltaYaw = angleField * (util::PI / 180.0); // D2R
       wheelDistDiff = model.getAxleLength() * deltaYaw;
@@ -379,6 +388,8 @@ namespace create {
   bool Create::driveWheels(const float& leftVel, const float& rightVel) {
     const float boundedLeftVel = BOUND_CONST(leftVel, -model.getMaxVelocity(), model.getMaxVelocity());
     const float boundedRightVel = BOUND_CONST(rightVel, -model.getMaxVelocity(), model.getMaxVelocity());
+    // FIXME(jacobperron): Compute and store the requested wheel velocities in the function driveRadius instead.
+    //                     Otherwise, the values will not be correct when calling driveRadius directly.
     requestedLeftVel = boundedLeftVel;
     requestedRightVel = boundedRightVel;
     if (model.getVersion() > V_1) {

@@ -86,6 +86,9 @@ namespace create {
       float requestedLeftVel;
       float requestedRightVel;
 
+      // If true, then compute odometry based on requested command velocities
+      bool estimateOdomWithCommandVelocity;
+
       void init();
       // Add two matrices and handle overflow case
       Matrix addMatrices(const Matrix &A, const Matrix &B) const;
@@ -148,6 +151,21 @@ namespace create {
        * \return true if successful, false otherwise
        */
       bool setMode(const create::CreateMode& mode);
+
+      /**
+       * \brief Enable/disable odometry estimates based on commanded velocities.
+       *
+       * If enabled, then readings from encoders with be ignored.
+       */
+      inline void enableOdomEstimateWithCommandVelocity(const bool enable)
+      {
+        estimateOdomWithCommandVelocity = enable;
+      }
+
+      inline bool isOdomEstimateWithCommandVelocityEnabled() const
+      {
+        return estimateOdomWithCommandVelocity;
+      }
 
       /**
        * \brief Starts a cleaning mode.
