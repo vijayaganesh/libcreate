@@ -66,7 +66,7 @@ namespace create {
     if (isValidPacketID(id)) {
       return packets[id];
     }
-    std::cout << "Invalid packet " << (int) id << " requested" << std::endl;
+    //std::cout << "Invalid packet " << (int) id << " requested" << std::endl;
     return boost::shared_ptr<Packet>();
   }
 
